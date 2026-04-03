@@ -29,7 +29,7 @@ task = "next-token prediction"
 
 [observation]
 corpus_id = "000"
-corpus_name = "tiny_cat_dog"
+corpus_name = "cat_dog"
 corpus_path = "corpus/000_cat_dog.txt"
 corpus_note = "Deliberately minimal corpus to make the learning loop inspectable."
 
@@ -82,7 +82,7 @@ includes = [
   "use external packages for logging and diagnostics",
   "use professional IDE-based development workflows",
   "train a toy next-token prediction model on a declared corpus",
-"export inspectable pretrained model artifacts for downstream use",
+  "export inspectable pretrained model artifacts for downstream use",
 ]
 excludes = [
   "production deployment systems",

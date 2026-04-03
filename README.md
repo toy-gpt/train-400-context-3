@@ -4,8 +4,8 @@
 [![Latest Release](https://img.shields.io/github/v/release/toy-gpt/train-400-context-3)](https://github.com/toy-gpt/train-400-context-3/releases)
 [![Docs](https://img.shields.io/badge/docs-live-blue)](https://toy-gpt.github.io/train-400-context-3/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/license/MIT)
-[![CI](https://github.com/toy-gpt/train-400-context-3/actions/workflows/ci-python-mkdocs.yml/badge.svg?branch=main)](https://github.com/toy-gpt/train-400-context-3/actions/workflows/ci-python-mkdocs.yml)
-[![Deploy-Docs](https://github.com/toy-gpt/train-400-context-3/actions/workflows/deploy-mkdocs.yml/badge.svg?branch=main)](https://github.com/toy-gpt/train-400-context-3/actions/workflows/deploy-mkdocs.yml)
+[![CI](https://github.com/toy-gpt/train-400-context-3/actions/workflows/ci-python-mkdocs-shared.yml/badge.svg?branch=main)](https://github.com/toy-gpt/train-400-context-3/actions/workflows/ci-python-mkdocs-shared.yml)
+[![Deploy-Docs](https://github.com/toy-gpt/train-400-context-3/actions/workflows/deploy-mkdocs-shared.yml/badge.svg?branch=main)](https://github.com/toy-gpt/train-400-context-3/actions/workflows/deploy-mkdocs-shared.yml)
 [![Check Links](https://github.com/toy-gpt/train-400-context-3/actions/workflows/links.yml/badge.svg)](https://github.com/toy-gpt/train-400-context-3/actions/workflows/links.yml)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-brightgreen.svg)](https://github.com/toy-gpt/train-400-context-3/security)
 
@@ -13,8 +13,8 @@
 
 This repository is part of a series of toy training repositories plus a companion client repository:
 
-- **Training repositories** produce pretrained artifacts (vocabulary, weights, metadata).
-- The **client repository** loads those artifacts and provides an interactive prompt.
+- [**Training repositories**](https://github.com/toy-gpt) produce pretrained artifacts (vocabulary, weights, metadata).
+- A [**web app**](https://toy-gpt.github.io/toy-gpt-chat/) loads the artifacts and provides an interactive prompt.
 
 ## Contents
 

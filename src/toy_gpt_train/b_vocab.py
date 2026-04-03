@@ -69,7 +69,7 @@ class Vocabulary:
 
 
 def main() -> None:
-    """Demonstrate vocabulary construction from a tiny corpus."""
+    """Demonstrate vocabulary construction from the project corpus."""
     from toy_gpt_train.a_tokenizer import SimpleTokenizer
 
     log_header(LOG, "Vocabulary Demo")

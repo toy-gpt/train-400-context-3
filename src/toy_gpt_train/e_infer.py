@@ -24,16 +24,19 @@ from dataclasses import dataclass
 import json
 import logging
 from pathlib import Path
+import tomllib
 from typing import Final
 
 from datafun_toolkit.logger import get_logger, log_header
 
 from toy_gpt_train.c_model import SimpleNextTokenModel
-from toy_gpt_train.d_train import argmax
+from toy_gpt_train.math_training import argmax
+from toy_gpt_train.prompts import parse_args
 
 LOG: logging.Logger = get_logger("INFER", level="INFO")
 
 BASE_DIR: Final[Path] = Path(__file__).resolve().parents[2]
+CONFIG_PATH: Final[Path] = BASE_DIR / "config.toml"
 ARTIFACTS_DIR: Final[Path] = BASE_DIR / "artifacts"
 META_PATH: Final[Path] = ARTIFACTS_DIR / "00_meta.json"
 VOCAB_PATH: Final[Path] = ARTIFACTS_DIR / "01_vocabulary.csv"
@@ -74,6 +77,14 @@ class ArtifactVocabulary:
     def get_token_frequency(self, token: str) -> int:
         """Return the frequency count for a given token, or 0 if not found."""
         return self.token_freq.get(token, 0)
+
+
+def load_config() -> JsonObject:
+    """Load config.toml if it exists, otherwise return empty dict."""
+    if CONFIG_PATH.exists():
+        with CONFIG_PATH.open("rb") as f:
+            return tomllib.load(f)
+    return {}
 
 
 def require_artifacts() -> None:
@@ -181,7 +192,9 @@ def top_k(probs: list[float], k: int) -> list[tuple[int, float]]:
 def generate_tokens_context3(
     model: SimpleNextTokenModel,
     vocab: ArtifactVocabulary,
-    start_token: str,
+    seed_0: str,
+    seed_1: str,
+    seed_2: str,
     num_tokens: int,
 ) -> list[str]:
     """Generate tokens using a context-3 window (t-2, t-1, t).
@@ -191,16 +204,19 @@ def generate_tokens_context3(
             (start, start, start)
         so that forward(previous2_id, previous1_id, current_id) is well-defined.
     """
-    generated: list[str] = [start_token]
+    generated: list[str] = [seed_0, seed_1, seed_2]
 
-    start_id: int | None = vocab.get_token_id(start_token)
-    if start_id is None:
-        LOG.error("Start token not in vocabulary: %r", start_token)
+    id_0 = vocab.get_token_id(seed_0)
+    id_1 = vocab.get_token_id(seed_1)
+    id_2 = vocab.get_token_id(seed_2)
+
+    if id_0 is None or id_1 is None or id_2 is None:
+        LOG.error("One or more seed tokens not in vocabulary.")
         return generated
 
-    previous2_id: int = start_id
-    previous1_id: int = start_id
-    current_id: int = start_id
+    previous2_id: int = id_0
+    previous1_id: int = id_1
+    current_id: int = id_2
 
     for _ in range(num_tokens):
         probs: list[float] = model.forward(previous2_id, previous1_id, current_id)
@@ -212,41 +228,11 @@ def generate_tokens_context3(
             break
 
         generated.append(next_token)
-
-        # Shift the 3-token context window forward by one token.
         previous2_id = previous1_id
         previous1_id = current_id
         current_id = next_id
 
     return generated
-
-
-def parse_args() -> argparse.Namespace:
-    """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(
-        description="Toy GPT inference from saved artifacts."
-    )
-    parser.add_argument(
-        "--start",
-        dest="start_token",
-        default="",
-        help="Start token for generation. If omitted, uses the first token in the vocabulary.",
-    )
-    parser.add_argument(
-        "--num",
-        dest="num_tokens",
-        type=int,
-        default=10,
-        help="Number of tokens to generate (not counting the start token).",
-    )
-    parser.add_argument(
-        "--topk",
-        dest="topk",
-        type=int,
-        default=3,
-        help="Show top-k next-token probabilities for the start token.",
-    )
-    return parser.parse_args()
 
 
 def main() -> None:
@@ -266,39 +252,67 @@ def main() -> None:
         expected_rows=v * v * v,
     )
 
-    args = parse_args()
+    args: argparse.Namespace = parse_args([])
 
-    # Choose a start token.
-    start_token = args.start_token
-    if not start_token:
-        # Deterministic fallback: smallest token_id present
-        first_id = min(vocab.id_to_token.keys())
-        start_token = vocab.id_to_token[first_id]
+    config: JsonObject = load_config()
+    infer_config: JsonObject = (
+        config.get("infer", {})  # type: ignore[assignment]
+        if isinstance(config.get("infer"), dict)
+        else {}
+    )
+
+    num_tokens: int = args.num_tokens or int(infer_config.get("num_tokens", 10))  # type: ignore[arg-type]
+    topk: int = args.topk or int(infer_config.get("topk", 5))  # type: ignore[arg-type]
+
+    # Read 3-token seed from config.
+    # All three must exist in the trained vocabulary.
+    # Using a sequence that appeared in training produces meaningful predictions.
+    seed_0: str = str(infer_config.get("seed_0", ""))
+    seed_1: str = str(infer_config.get("seed_1", ""))
+    seed_2: str = str(infer_config.get("seed_2", ""))
+
+    # Fall back to most common token repeated if seed is missing.
+    if not seed_0 or not seed_1 or not seed_2:
+        most_common_token: str = (
+            max(vocab.token_freq, key=lambda t: vocab.token_freq[t])
+            if vocab.token_freq
+            else "<no_tokens>"
+        )
+        LOG.warning(
+            "Seed tokens missing or incomplete in config.toml. "
+            f"Falling back to ({most_common_token!r}, {most_common_token!r}, {most_common_token!r}). "
+            "Predictions may be uniform for unseen contexts."
+        )
+        seed_0 = seed_0 or most_common_token
+        seed_1 = seed_1 or most_common_token
+        seed_2 = seed_2 or most_common_token
 
     LOG.info(
         f"Loaded repo_name={meta.get('repo_name')} model_kind={meta.get('model_kind')}"
     )
     LOG.info(f"Vocab size: {v}")
-    LOG.info(f"Start token: {start_token!r}")
-    LOG.info(
-        f"Context-3 bootstrap: ({start_token!r}, {start_token!r}, {start_token!r})"
-    )
+    LOG.info(f"Seed context: {seed_0!r}|{seed_1!r}|{seed_2!r}")
 
-    start_id = vocab.get_token_id(start_token)
-    if start_id is not None:
-        probs: list[float] = model.forward(start_id, start_id, start_id)
+    seed_0_id = vocab.get_token_id(seed_0)
+    seed_1_id = vocab.get_token_id(seed_1)
+    seed_2_id = vocab.get_token_id(seed_2)
+
+    if seed_0_id is not None and seed_1_id is not None and seed_2_id is not None:
+        probs: list[float] = model.forward(seed_0_id, seed_1_id, seed_2_id)
         LOG.info(
-            f"Top next-token predictions after {start_token!r}|{start_token!r}|{start_token!r}:"
+            f"Top next-token predictions after " f"{seed_0!r}|{seed_1!r}|{seed_2!r}:"
         )
-        for tok_id, prob in top_k(probs, k=max(1, args.topk)):
+        for tok_id, prob in top_k(probs, k=max(1, topk)):
             tok = vocab.get_id_token(tok_id)
             LOG.info(f"  {tok!r} (ID {tok_id}): {prob:.4f}")
 
     generated = generate_tokens_context3(
         model=model,
         vocab=vocab,
-        start_token=start_token,
-        num_tokens=max(0, args.num_tokens),
+        seed_0=seed_0,
+        seed_1=seed_1,
+        seed_2=seed_2,
+        num_tokens=max(0, num_tokens),
     )
 
     LOG.info("Generated sequence:")
