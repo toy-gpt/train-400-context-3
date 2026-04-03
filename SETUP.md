@@ -111,9 +111,6 @@ git commit -m "update"
 git push -u origin main
 ```
 
-Follow the detailed instructions at:
-[**03. Daily Workflow**](https://denisecase.github.io/pro-analytics-02/03-daily-workflow/)
-
 ## Resources
 
 - [Pro-Analytics-02](https://denisecase.github.io/pro-analytics-02/) - guide to professional Python
