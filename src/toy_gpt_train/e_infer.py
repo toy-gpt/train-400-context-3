@@ -299,9 +299,7 @@ def main() -> None:
 
     if seed_0_id is not None and seed_1_id is not None and seed_2_id is not None:
         probs: list[float] = model.forward(seed_0_id, seed_1_id, seed_2_id)
-        LOG.info(
-            f"Top next-token predictions after " f"{seed_0!r}|{seed_1!r}|{seed_2!r}:"
-        )
+        LOG.info(f"Top next-token predictions after {seed_0!r}|{seed_1!r}|{seed_2!r}:")
         for tok_id, prob in top_k(probs, k=max(1, topk)):
             tok = vocab.get_id_token(tok_id)
             LOG.info(f"  {tok!r} (ID {tok_id}): {prob:.4f}")

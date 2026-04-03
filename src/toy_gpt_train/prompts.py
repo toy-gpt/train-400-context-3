@@ -128,8 +128,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         dest="start_token",
         default="",
         help=(
-            "Explicit start token for generation. "
-            "If provided, this overrides --prompt."
+            "Explicit start token for generation. If provided, this overrides --prompt."
         ),
     )
 
