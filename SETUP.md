@@ -37,15 +37,14 @@ uv sync --extra dev --extra docs --upgrade
 
 If asked: "We noticed a new environment has been created. Do you want to select it for the workspace folder?" Click **"Yes"**.
 
-Install and run pre-commit checks (repeat git `add` and `commit` twice as needed):
-
 ```shell
 uvx pre-commit install
 git add -A
 uvx pre-commit run --all-files
+# repeat if changes were made
+git add -A
+uvx pre-commit run --all-files
 ```
-
-
 
 ## 03: Daily Workflow (Working With Python Project Code)
 

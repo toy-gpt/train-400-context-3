@@ -57,10 +57,6 @@ uv run python src/toy_gpt_train/d_train.py
 
 Run individually:
 
-- a/b/c are demos (can be run alone if desired)
-- d_train produces artifacts
-- e_infer consumes artifacts
-
 ```shell
 uv run python src/toy_gpt_train/a_tokenizer.py
 uv run python src/toy_gpt_train/b_vocab.py
